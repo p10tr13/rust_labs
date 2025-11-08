@@ -8,7 +8,13 @@ use std::thread;
 
 fn main() {
     // Ex. 1
-    let n = NonZero::new(55).unwrap();
+    let n = match NonZero::new(55) {
+        Some(n) => n,
+        None => {
+            eprintln!("Zero in not allowed");
+            return;
+        }
+    };
     let set = divisors(n);
     println!("divisors: {:?}", set);
 
@@ -20,13 +26,21 @@ fn main() {
     // Ex. 3
     let now = time::Instant::now();
     for i in 1..100 {
-        black_box(divisors(black_box(NonZero::new(i).unwrap())));
+        if let Some(nz) = NonZero::new(i) {
+            black_box(divisors(black_box(nz)));
+        }
     }
     let elapsed = now.elapsed();
     println!("Elapsed: {:.6}", (elapsed.as_micros() as f64)/100000.0);
 
     // Ex. 5
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+    let listener = match TcpListener::bind("127.0.0.1:8080") {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Failed to bind {}", e);
+            return;
+        }
+    };
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -45,9 +59,11 @@ fn divisors(n: NonZero<u32>) -> BTreeSet<NonZero<u32>> {
     let mut tree = BTreeSet::<NonZero<u32>>::new();
     for i in 1..n.isqrt().get() {
         if n.get().is_multiple_of(i) {
-            tree.insert(NonZero::new(i).unwrap());
-            if i * i != n.get() {
-                tree.insert(NonZero::new(n.get()/i).unwrap());
+            if let Some(v) = NonZero::new(i) {
+                tree.insert(v);
+            }
+            if i * i != n.get() && let Some(v) = NonZero::new(n.get()/i) {
+                tree.insert(v);
             }
         }
     }
