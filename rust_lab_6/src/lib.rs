@@ -1,11 +1,7 @@
 use itertools::Itertools;
-use std::collections::BTreeSet;
 
 // Nie zmieniaj ciała tej funkcji — jedynie typy.
-pub fn wrap_call<F1,F2>(f1: F1, f2: F2) -> i32
-where
-    F1: Fn(i32) -> i32,
-    F2: FnOnce(i32, i32) -> i32,
+pub fn wrap_call<R, Out>(f1: impl Fn(u32) -> R, f2: impl FnOnce(R, R) -> Out) -> Out
 {
     let f1_rename = f1;
     f2(f1_rename(1), f1_rename(2))
@@ -50,8 +46,8 @@ pub fn vertices_loop(edges: &[(u32, u32)]) -> Vec<u32> {
 
 pub fn vertices(edges: &[(u32, u32)]) -> Vec<u32> {
     let mut vertices: Vec<u32> = edges.iter().flat_map(|&(x, y)| [x,y]).collect();
-    vertices.dedup();
     vertices.sort();
+    vertices.dedup();
     vertices
 }
 
@@ -67,32 +63,37 @@ pub fn cycles_2_loop(edges: &[(u32, u32)]) -> Vec<u32> {
             }
         }
     }
-    vertices.dedup();
     vertices.sort();
+    vertices.dedup();
     vertices
 }
 
 pub fn cycles_2(edges: &[(u32, u32)]) -> Vec<u32> {
     let mut vertices: Vec<u32> = edges.iter().copied()
         .cartesian_product(edges.iter().copied())
-        .filter(|&(x,y)| x.0 == y.1 && x.1 == y.1 && x.1 != x.0)
-        .flat_map(|(x,y)| [x.0, x.1, y.0,y.1]).collect();
-    vertices.dedup();
+        .filter(|&(x,y)| x.0 == y.1 && x.1 == y.0 && x.1 != x.0)
+        .flat_map(|(x, _)| [x.0, x.1]).collect();
     vertices.sort();
+    vertices.dedup();
     vertices
 }
 
 pub fn primes_loop(n: u32) -> Vec<u32> {
     let mut vec = Vec::new();
-    for i in 0..n {
-
+    for i in 2..n {
+        if is_prime(i) {
+            vec.push(i);
+        }
     }
     vec
 }
 
-fn isPrime(n: u32) -> bool {
-    for i in 2..(n as f64).sqrt() as u32 {
-        if n % i == 0 {
+fn is_prime(n: u32) -> bool {
+    if n <= 1 {
+        return false;
+    }
+    for i in 2..=(n as f64).sqrt() as u32 {
+        if n.is_multiple_of(i) {
             return false;
         }
     }
@@ -100,23 +101,47 @@ fn isPrime(n: u32) -> bool {
 }
 
 pub fn primes(n: u32) -> Vec<u32> {
-    todo!()
+    //(2..n).filter(|&i| is_prime(i)).collect()
+    (2..n).filter(|&i| !(2..i).any(|d| i % d == 0)).collect()
 }
 
 pub fn run_length_encode_loop(list: &[u32]) -> Vec<(u32, usize)> {
-    todo!()
+    if list.is_empty() {
+        return Vec::new();
+    }
+    let mut vec = Vec::new();
+    let mut counter = 0;
+    let mut prev_val = list[0];
+    for &x in list {
+        if x == prev_val {
+            counter += 1;
+        }
+        else {
+            vec.push((prev_val, counter));
+            prev_val = x;
+            counter = 1;
+        }
+    }
+    vec.push((prev_val, counter));
+    vec
 }
 
 pub fn run_length_encode(list: &[u32]) -> Vec<(u32, usize)> {
-    todo!()
+    list.chunk_by(|&a, &b| a == b).map(|l| (l[0], l.len())).collect()
 }
 
 pub fn compose_all_loop(fns: &[fn(i32) -> i32]) -> impl Fn(i32) -> i32 {
-    todo!()
+    let funcs = fns.to_vec();
+    move |mut x| {
+        for f in &funcs {
+            x = f(x);
+        }
+        x
+    }
 }
 
 pub fn compose_all(fns: &[fn(i32) -> i32]) -> impl Fn(i32) -> i32 {
-    todo!()
+    move |x| fns.iter().fold(x, |acc, f| f(acc))
 }
 
 #[cfg(test)]
